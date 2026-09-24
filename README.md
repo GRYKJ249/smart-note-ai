@@ -1,28 +1,27 @@
-# Secure Cloud Notes
+# Smart Note AI
 
-نزل المشروع
+Smart Note AI is a private, full-stack notes workspace built with React, TanStack Start, and MySQL.
 
-https://github.com/GRYKJ249/secure-cloud-notes.git
+## Local setup
 
-بعد تنزلو شيل صفحة البداية برها خليهو يدخلك طوالي للصفحة التانيه و اعمل التصميم مشابه لي دا و راح تغير شعار الموقع تضيف الشعار دا وخلاص
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e185b1c2-946c-43b5-98c1-19c4ee0efd8d).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+```bash
+cp .env.example .env
+npm install
+docker compose -f docker-compose.mysql.yml up -d
+npm run db:generate
+npm run db:migrate
 npm run dev
 ```
+
+The database stores users, secure sessions, and notes. Passwords are hashed with Node's `scrypt`; raw passwords and secrets never enter the database or repository.
+
+### Authentication API
+
+- `POST /api/auth/register` — `{ email, name, password }`
+- `POST /api/auth/login` — `{ email, password }`
+- `GET /api/auth/me`
+- `POST /api/auth/logout`
+- `GET /api/notes`
+- `POST /api/notes` — `{ title, content }`
+
+Set `DATABASE_URL` in `.env` for a hosted MySQL instance. In production, serve over HTTPS so the session cookie's `Secure` flag is active.

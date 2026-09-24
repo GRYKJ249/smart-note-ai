@@ -1,0 +1,21 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: smart_notes
+      MYSQL_USER: smartnote
+      MYSQL_PASSWORD: smartnote
+      MYSQL_ROOT_PASSWORD: change-this-root-password
+    ports:
+      - "3306:3306"
+    volumes:
+      - smart_notes_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "smartnote", "-psmartnote"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  smart_notes_mysql:
