@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Camera, Code2, ImageIcon, Loader2, MessageSquare, Save, Sparkles } from "lucide-react";
 import { OperaLogoMark } from "@/components/brand/OperaLogoMark";
@@ -9,177 +9,16 @@ import { useProfile } from "@/hooks/useProfile";
 import { UserAvatar } from "@/components/profile/UserAvatar";
 import { uploadAvatar } from "@/lib/avatar";
 import { useLang } from "@/lib/i18n";
+import { NotesWorkspace } from "@/components/notes/NotesWorkspace";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
-  head: () => ({
-    meta: [
-      { title: "Your account — Opera AI" },
-      { name: "description", content: "Manage your Opera AI profile, verification status and usage." },
-      { property: "og:title", content: "Your account — Opera AI" },
-      { property: "og:description", content: "Manage your Opera AI profile, verification status and usage." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-  }),
-  component: Dashboard,
-});
-
+export const Route = createFileRoute("/_authenticated/dashboard")({ head: () => ({ meta: [{ title: "Your workspace — Smart Note AI" }, { name: "description", content: "Manage your profile, notes and creative workspace." }] }), component: Dashboard });
 function Dashboard() {
-  const { t, lang, setLang } = useLang();
-  const queryClient = useQueryClient();
-  const [displayName, setDisplayName] = useState("");
-  const [username, setUsername] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  const { profile, avatarUrl, isLoading, refetch } = useProfile();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const changeAvatar = async (file: File) => {
-    setSaving(true);
-    const result = await uploadAvatar(file);
-    if (!result.ok) {
-      setSaving(false);
-      toast.error(
-        result.error === "too_large"
-          ? t("Pick an image under 5 MB.", "اختر صورة أقل من 5 ميجا.")
-          : result.error === "not_image"
-            ? t("Pick an image file.", "اختر ملف صورة.")
-            : (result.message ?? t("Upload failed.", "فشل رفع الصورة.")),
-      );
-      return;
-    }
-    saveLocalProfile({ avatar_url: result.path });
-    setSaving(false);
-    toast.success(t("Picture updated.", "تم تحديث الصورة."));
-    void refetch();
-    void queryClient.invalidateQueries({ queryKey: ["profile"] });
-  };
-
-  useEffect(() => {
-    if (profile) {
-      setDisplayName(profile.display_name ?? "");
-      setUsername(profile.username ?? "");
-    }
-  }, [profile]);
-
-  const save = async () => {
-    setSaving(true);
-    saveLocalProfile({ display_name: displayName.trim(), username: username.trim() });
-    setSaving(false);
-    toast.success(t("Profile saved.", "تم حفظ الملف الشخصي."));
-    void queryClient.invalidateQueries({ queryKey: ["profile"] });
-  };
-
-  const threadCount = listThreads().length;
-  const imageCount = listImages().length;
-
-  return (
-    <div dir={lang === "ar" ? "rtl" : "ltr"} className="min-h-full px-4 py-10">
-      <div className="mx-auto max-w-4xl">
-        <header className="flex flex-wrap items-center justify-between gap-3">
-          <Link to="/" className="flex items-center gap-3">
-            <OperaLogoMark className="h-10 w-10" />
-            <span className="font-display text-lg font-bold">
-              Opera<span className="text-primary">AI</span>
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={() => setLang(lang === "ar" ? "en" : "ar")} className="btn-ghost !px-3 !py-2 text-xs">
-              {lang === "ar" ? "English" : "العربية"}
-            </button>
-          </div>
-        </header>
-
-        <div className="glass-strong mt-8 rounded-xl p-8">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex flex-col items-center gap-1.5">
-              <button type="button" onClick={() => fileInputRef.current?.click()} className="relative">
-                <UserAvatar src={avatarUrl} name={profile?.display_name ?? ""} className="h-16 w-16 text-lg" />
-                <span className="absolute -bottom-1 -end-1 rounded-full bg-primary p-1.5 text-primary-foreground">
-                  <Camera className="h-3 w-3" />
-                </span>
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (file) void changeAvatar(file);
-                }}
-              />
-            </div>
-            <div className="min-w-0">
-              <h1 className="font-display text-2xl font-bold">
-                {t("Welcome", "أهلاً")}, {profile?.display_name || t("friend", "صديقنا")}
-              </h1>
-              <p className="truncate text-sm text-muted-foreground">
-                {t("Stored only in this browser.", "محفوظ في هذا المتصفح فقط.")}
-              </p>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="mt-8 flex justify-center">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{t("Display name", "الاسم المعروض")}</span>
-                <input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full rounded-xl border border-glass-border bg-background/40 px-3.5 py-3 text-sm outline-none focus:border-primary/60"
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{t("Username", "اسم المستخدم")}</span>
-                <input
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="w-full rounded-xl border border-glass-border bg-background/40 px-3.5 py-3 text-sm outline-none focus:border-primary/60"
-                />
-              </label>
-              <div className="sm:col-span-2">
-                <button type="button" onClick={save} disabled={saving} className="btn-hero justify-center disabled:opacity-60">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {t("Save changes", "حفظ التغييرات")}
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="glass rounded-xl p-6">
-            <MessageSquare className="h-5 w-5 text-primary" />
-            <p className="mt-3 text-3xl font-bold">{threadCount}</p>
-            <p className="text-sm text-muted-foreground">{t("Saved conversations", "المحادثات المحفوظة")}</p>
-          </div>
-          <div className="glass rounded-xl p-6">
-            <ImageIcon className="h-5 w-5 text-primary" />
-            <p className="mt-3 text-3xl font-bold">{imageCount}</p>
-            <p className="text-sm text-muted-foreground">{t("Generated images", "الصور المُنشأة")}</p>
-          </div>
-          <Link to="/chat" className="glass rounded-xl p-6 transition hover:border-primary/50">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <p className="mt-3 font-semibold">{t("Chat workspace", "مساحة المحادثة")}</p>
-            <p className="text-sm text-muted-foreground">
-              {t("Talk to Opera AI with streaming answers and saved conversations.", "تحدّث مع أوبرا الذكي بردود فورية ومحادثات محفوظة.")}
-            </p>
-          </Link>
-          <Link to="/code" className="glass rounded-xl p-6 transition hover:border-primary/50">
-            <Code2 className="h-5 w-5 text-primary" />
-            <p className="mt-3 font-semibold">{t("Code Workspace", "مساحة الأكواد")}</p>
-            <p className="text-sm text-muted-foreground">
-              {t("Cloud IDE with a live terminal and AI refactoring.", "بيئة برمجة سحابية بطرفية حيّة ومساعد ذكي للتحسين.")}
-            </p>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  const { t, lang, setLang } = useLang(); const queryClient = useQueryClient(); const [displayName, setDisplayName] = useState(""); const [username, setUsername] = useState(""); const [saving, setSaving] = useState(false); const { profile, avatarUrl, isLoading, refetch } = useProfile(); const fileInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { if (profile) { setDisplayName(profile.display_name ?? ""); setUsername(profile.username ?? ""); } }, [profile]);
+  const changeAvatar = async (file: File) => { setSaving(true); const result = await uploadAvatar(file); if (!result.ok) { toast.error(result.message ?? "Upload failed"); setSaving(false); return; } saveLocalProfile({ avatar_url: result.path }); setSaving(false); await refetch(); toast.success("Picture updated"); };
+  const save = () => { setSaving(true); saveLocalProfile({ display_name: displayName.trim(), username: username.trim() }); setSaving(false); toast.success("Profile saved"); void queryClient.invalidateQueries({ queryKey: ["profile"] }); };
+  return <div dir={lang === "ar" ? "rtl" : "ltr"} className="min-h-full px-4 py-8"><div className="mx-auto max-w-6xl"><header className="flex flex-wrap items-center justify-between gap-3"><Link to="/" className="flex items-center gap-3"><OperaLogoMark className="h-10 w-10" /><span className="font-display text-lg font-bold">Smart<span className="text-primary">Notes</span></span></Link><button type="button" onClick={() => setLang(lang === "ar" ? "en" : "ar")} className="btn-ghost !px-3 !py-2 text-xs">{lang === "ar" ? "English" : "العربية"}</button></header>
+    <div className="mt-8 grid gap-6 lg:grid-cols-[0.85fr_1.15fr]"><section className="glass-strong rounded-2xl p-6"><div className="flex items-center gap-4"><button type="button" onClick={() => fileInputRef.current?.click()} className="relative"><UserAvatar src={avatarUrl} name={profile?.display_name ?? ""} className="h-16 w-16 text-lg" /><span className="absolute -bottom-1 -end-1 rounded-full bg-primary p-1.5 text-primary-foreground"><Camera className="h-3 w-3" /></span></button><input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) void changeAvatar(file); }} /><div><h1 className="text-2xl font-bold">{t("Welcome", "أهلاً")}, {profile?.display_name || t("friend", "صديقنا")}</h1><p className="text-sm text-muted-foreground">Your private command center.</p></div></div>{isLoading ? <Loader2 className="mx-auto mt-8 animate-spin text-primary" /> : <div className="mt-7 grid gap-3"><input value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Display name" className="rounded-xl border bg-background/40 px-3.5 py-3 text-sm outline-none focus:border-primary" /><input value={username} onChange={e => setUsername(e.target.value)} placeholder="Username" className="rounded-xl border bg-background/40 px-3.5 py-3 text-sm outline-none focus:border-primary" /><button type="button" onClick={save} disabled={saving} className="btn-hero justify-center disabled:opacity-60"><Save className="h-4 w-4" />Save changes</button></div>}</section><div className="grid gap-4 sm:grid-cols-2"><div className="glass rounded-2xl p-5"><MessageSquare className="text-primary" /><p className="mt-4 text-3xl font-bold">{listThreads().length}</p><p className="text-sm text-muted-foreground">Saved conversations</p></div><div className="glass rounded-2xl p-5"><ImageIcon className="text-primary" /><p className="mt-4 text-3xl font-bold">{listImages().length}</p><p className="text-sm text-muted-foreground">Generated images</p></div><Link to="/chat" className="glass rounded-2xl p-5 transition hover:border-primary/50"><Sparkles className="text-primary" /><p className="mt-4 font-semibold">Chat workspace</p><p className="text-sm text-muted-foreground">Think with an intelligent assistant.</p></Link><Link to="/code" className="glass rounded-2xl p-5 transition hover:border-primary/50"><Code2 className="text-primary" /><p className="mt-4 font-semibold">Code workspace</p><p className="text-sm text-muted-foreground">Build and refine ideas faster.</p></Link></div></div>
+    <NotesWorkspace />
+  </div></div>;
 }
